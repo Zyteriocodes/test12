@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Coin flip</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --text: #e8eaed;
+      --muted: #8b949e;
+      --heads: #58a6ff;
+      --tails: #a371f7;
+      --accent: #3fb950;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: radial-gradient(ellipse 120% 80% at 50% -20%, #1f2d44 0%, var(--bg) 55%);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    h1 {
+      font-weight: 600;
+      font-size: 1.25rem;
+      letter-spacing: 0.02em;
+      margin: 0 0 1.5rem;
+      color: var(--muted);
+    }
+
+    .coin-wrap {
+      perspective: 800px;
+      margin-bottom: 1.75rem;
+    }
+
+    .coin {
+      width: 140px;
+      height: 140px;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.55s cubic-bezier(0.4, 0.15, 0.2, 1);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .coin.spinning {
+      pointer-events: none;
+    }
+
+    .face {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.25rem;
+      font-weight: 700;
+      backface-visibility: hidden;
+      border: 3px solid rgba(255, 255, 255, 0.12);
+      box-shadow:
+        inset 0 0 40px rgba(0, 0, 0, 0.35),
+        0 12px 32px rgba(0, 0, 0, 0.45);
+    }
+
+    .face.heads {
+      background: linear-gradient(145deg, #2d4a6f 0%, #1e3a5f 100%);
+      color: var(--heads);
+    }
+
+    .face.tails {
+      background: linear-gradient(145deg, #4a2d6f 0%, #351e5f 100%);
+      color: var(--tails);
+      transform: rotateY(180deg);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.75rem;
+      width: min(360px, 100%);
+      margin-bottom: 1rem;
+    }
+
+    .stat {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .stat .label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+
+    .stat .value {
+      font-size: 1.35rem;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+
+    .stat.heads .value { color: var(--heads); }
+    .stat.tails .value { color: var(--tails); }
+    .stat.total .value { color: var(--accent); }
+
+    .actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    button {
+      font: inherit;
+      padding: 0.6rem 1.1rem;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    button:hover {
+      background: #243044;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    button:focus-visible {
+      outline: 2px solid var(--heads);
+      outline-offset: 2px;
+    }
+
+    .hint {
+      margin-top: 1.25rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <h1>Coin flip</h1>
+
+  <div class="coin-wrap">
+    <div class="coin" id="coin" role="button" tabindex="0" aria-label="Flip coin">
+      <div class="face heads" aria-hidden="true">H</div>
+      <div class="face tails" aria-hidden="true">T</div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat heads">
+      <div class="label">Heads</div>
+      <div class="value" id="heads">0</div>
+    </div>
+    <div class="stat tails">
+      <div class="label">Tails</div>
+      <div class="value" id="tails">0</div>
+    </div>
+    <div class="stat total">
+      <div class="label">Total</div>
+      <div class="value" id="total">0</div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button type="button" id="flipBtn">Flip</button>
+    <button type="button" id="resetBtn">Reset</button>
+  </div>
+
+  <p class="hint">Click the coin or press Space / Enter to flip.</p>
+
+  <script>
+    (function () {
+      const coin = document.getElementById("coin");
+      const flipBtn = document.getElementById("flipBtn");
+      const resetBtn = document.getElementById("resetBtn");
+      const elHeads = document.getElementById("heads");
+      const elTails = document.getElementById("tails");
+      const elTotal = document.getElementById("total");
+
+      let heads = 0;
+      let tails = 0;
+      let rotation = 0;
+      let showingHeads = true;
+      let busy = false;
+
+      function updateStats() {
+        elHeads.textContent = String(heads);
+        elTails.textContent = String(tails);
+        elTotal.textContent = String(heads + tails);
+      }
+
+      function flip() {
+        if (busy) return;
+        busy = true;
+        coin.classList.add("spinning");
+
+        const nextHeads = Math.random() < 0.5;
+        const extraSpins = 4 + Math.floor(Math.random() * 3);
+        const base = rotation - rotation % 360;
+        const targetFaceDeg = nextHeads ? 0 : 180;
+        const currentNorm = ((rotation % 360) + 360) % 360;
+        let delta = targetFaceDeg - currentNorm;
+        if (delta < 0) delta += 360;
+        rotation = base + extraSpins * 360 + delta;
+
+        coin.style.transform = "rotateY(" + rotation + "deg)";
+
+        window.setTimeout(function () {
+          showingHeads = nextHeads;
+          if (nextHeads) heads += 1;
+          else tails += 1;
+          updateStats();
+          coin.classList.remove("spinning");
+          busy = false;
+        }, 560);
+      }
+
+      function reset() {
+        if (busy) return;
+        heads = 0;
+        tails = 0;
+        rotation = showingHeads ? 0 : 180;
+        coin.style.transition = "none";
+        coin.style.transform = "rotateY(" + rotation + "deg)";
+        void coin.offsetHeight;
+        coin.style.transition = "";
+        updateStats();
+      }
+
+      coin.addEventListener("click", flip);
+      flipBtn.addEventListener("click", flip);
+      resetBtn.addEventListener("click", reset);
+
+      coin.addEventListener("keydown", function (e) {
+        if (e.key === " " || e.key === "Enter") {
+          e.preventDefault();
+          flip();
+        }
+      });
+
+      updateStats();
+    })();
+  </script>
+</body>
+</html>
